@@ -1,0 +1,239 @@
+/* ======================
+   PAGE
+====================== */
+.shipments-page {
+  padding: 16px;
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  font-size: 13px;                 /* ⬅ base smaller font */
+}
+
+/*======================
+   HEADER
+====================== */
+.shipments-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.shipments-header h2 {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/*======================
+   ACTION BUTTONS
+====================== */
+.actions .btn {
+  margin-left: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;                /* ⬅ reduced */
+  font-weight: 500;
+}
+
+.btn.excel { background: #22c55e; }
+.btn.pdf { background: #ef4444; }
+
+/* ======================
+   SEARCH BAR
+====================== */
+.search-bar {
+  margin: 12px 0;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.search-bar input {
+  padding: 6px 8px;
+  width: 240px;
+  font-size: 12px;
+}
+
+.search-bar button {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.reset {
+  background: #e5e7eb;
+}
+
+/* ======================
+   TABLE
+======================*/
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  font-size: 12px;                /* ⬅ table font reduced */
+}
+
+th {
+  background: #e0ecff;
+  padding: 8px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;            /* ⬅ single line */
+}
+
+td {
+  padding: 6px 8px;               /* ⬅ compact rows */
+  border-bottom: 1px solid #eee;
+  white-space: nowrap;            /* ⬅ keep in one line */
+}
+
+/* ======================
+   PART DESCRIPTION
+====================== */
+.desc {
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+}
+
+/* ======================
+   MODE BADGES
+====================== */
+.badge {
+  padding: 3px 8px;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.badge.sea  { background: #2563eb; }
+.badge.air  { background: #0891b2; }
+.badge.road { background: #f97316; }
+
+/* ======================
+   EDIT BUTTON
+====================== */
+.edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 5px;
+  background: linear-gradient(135deg, #1e90ff, #007bff);
+  color: #fff;
+  font-size: 11px;               /* ⬅ reduced */
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 123, 255, 0.25);
+  transition: all 0.2s ease;
+}
+
+.edit-btn:hover {
+  background: linear-gradient(135deg, #007bff, #0056d2);
+  transform: translateY(-1px);
+}
+
+.edit-btn:disabled {
+  background: #b5b5b5;
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.7;
+}
+
+/* ======================
+   INFO / ERROR
+====================== */
+.error {
+  color: #dc2626;
+  font-size: 12px;
+}
+
+.info {
+  color: #555;
+  font-size: 12px;
+}
+/* Manual description field */
+.desc-input {
+  width: 220px;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid #d0d7de;
+  background: #fafafa;
+  transition: all 0.2s ease;
+}
+
+.desc-input::placeholder {
+  color: #9aa0a6;
+  font-style: italic;
+}
+
+.desc-input:focus {
+  outline: none;
+  background: #ffffff;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
+}
+/* Compact Delivery Status Dropdown */
+.delivery-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  width: 100%;
+  height: 22px;
+  padding: 0 6px;
+  font-size: 11px;
+  line-height: 22px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+
+  border: 2px solid #ccc;
+  background-color: transparent;
+}
+
+
+/* Final Delivered */
+.delivery-delivered {
+  background-color: #2fb36d;
+  color: white;
+  border-color: #1f8a54;
+}
+
+/* In Transit */
+.delivery-transit {
+  background-color: #4c8df6;
+  color: white;
+  border-color: #356ac3;
+}
+
+/* In Process */
+.delivery-process {
+  background-color: #c7c10a;
+  color: #1f1f1f;
+  border-color: #a59f07;
+}
+
+.desc-input {
+  width: 160px;
+  font-size: 12px;
+  padding: 4px;
+}
+
+.btn.small {
+  margin-left: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+}

@@ -1,0 +1,59 @@
+.sidebar {
+  width: 260px;
+  min-height: 100vh;
+
+  /*  BACKGROUND IMAGE */
+  background-image: 
+    linear-gradient(
+      rgba(10, 40, 80, 0.75),
+      rgba(10, 40, 80, 0.75)
+    ),
+    url("C:\Users\ATOLE\Desktop\centralized_logistics_regenerated\frontend\src\styles\sidebar-bg.png");
+
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 16px;
+}
+
+/* BRAND */
+.sidebar-brand {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 28px;
+}
+
+/* MENU */
+.sidebar-menu a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 12px 14px;
+  margin-bottom: 8px;
+
+  border-radius: 8px;
+  text-decoration: none;
+  color: #eaf2ff;
+  font-weight: 500;
+
+  transition: background 0.2s;
+}
+
+.sidebar-menu a:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.sidebar-menu a.active {
+  background: rgba(255, 255, 255, 0.25);
+  font-weight: 600;
+}
+.sidebar {
+  width: 260px;       /* fixed width */
+  min-height: 100vh;
+  flex-shrink: 0;     /* prevents stretching */
+}

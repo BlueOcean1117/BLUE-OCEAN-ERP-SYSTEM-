@@ -1,0 +1,45 @@
+/* src/index.css - small corporate style */
+:root{
+  --nav:#0f2a3d;
+  --accent:#1f7ed0;
+  --card:#ffffff;
+  --bg:#f4f8fc;
+  --muted:#6b7280;
+  --radius:10px;
+}
+*{box-sizing:border-box}
+body,html,#root{height:100%;margin:0;font-family:Inter,Arial,Helvetica,sans-serif;background:var(--bg)}
+.app-root{display:flex;min-height:100vh}
+.sidebar{width:220px;background:var(--nav);color:#fff;padding:20px}
+.brand{font-weight:700;margin-bottom:12px}
+.nav-item{display:block;padding:8px 6px;border-radius:6px;color:#dbeafe;margin-bottom:6px}
+.nav-item.active{background:rgba(255,255,255,0.05)}
+.main{flex:1;padding:20px;display:flex;flex-direction:column}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.actions{display:flex;gap:8px}
+.btn{padding:8px 12px;border-radius:8px;border:1px solid #e6eef8;background:#fff;cursor:pointer}
+.btn.primary{background:var(--accent);color:#fff;border:none}
+.content{flex:1}
+.card{background:var(--card);padding:16px;border-radius:var(--radius);box-shadow:0 8px 20px rgba(2,6,23,0.06)}
+.wizard .stepper{display:flex;gap:8px;margin-bottom:16px}
+.step{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:#eef6ff}
+.step.active{background:linear-gradient(180deg,#e6f2ff,#d9ecff);border:1px solid #cbe4ff}
+.step-num{width:28px;height:28px;border-radius:50%;background:#fff;color:var(--nav);display:flex;align-items:center;justify-content:center;font-weight:700}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.input{width:100%;padding:10px;border-radius:8px;border:1px solid #e6eef8;background:#fff}
+.muted{color:var(--muted)}
+.card pre{margin:0;white-space:pre-wrap;font-family:monospace;font-size:13px}
+/* ensure active NavLink gets 'active' class */
+.nav-item.active {
+  background: rgba(255,255,255,0.06);
+  display:block;
+  padding:8px 6px;
+  border-radius:6px;
+}
+.nav-item {
+  display:block;
+  padding:8px 6px;
+  color:#dbeafe;
+  margin-bottom:6px;
+  text-decoration:none;
+}
