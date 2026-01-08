@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config();
-require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
@@ -14,7 +14,7 @@ const pool = require("./db");
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-
+//require("dotenv").config();
 // Mock data for offline mode
 const mockShipments = [
   {
