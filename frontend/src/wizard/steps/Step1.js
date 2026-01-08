@@ -76,7 +76,20 @@ export default function Step1({ initial = {}, onNext, onUpdate = () => {} }) {
         // silently ignore if not found
         // user can type description manually
       });
-  }, [form.part_no, onUpdate]);
+  }, [form.part_no]);
+
+  /* ============================
+     SAVE NEW PART WHEN DESCRIPTION CHANGES
+  ============================ */
+  const saveNewPart = async (partNo, partDesc) => {
+    if (!partNo || !partDesc) return;
+    try {
+      await API.post("/parts", { part_no: partNo, part_desc: partDesc });
+      console.log("New part saved:", partNo);
+    } catch (err) {
+      console.log("Failed to save part:", err);
+    }
+  };
 
   /* ============================
      NET & GROSS WEIGHT CALC
@@ -100,8 +113,8 @@ export default function Step1({ initial = {}, onNext, onUpdate = () => {} }) {
     }));
 
     onUpdate({
-      net_wt: net || form.net_wt,
-      gross_wt: gross || form.gross_wt
+      net_wt: net,
+      gross_wt: gross
     });
   }, [form.part_net_wt, form.part_qty, form.packaging_wt]);
 
@@ -173,6 +186,7 @@ export default function Step1({ initial = {}, onNext, onUpdate = () => {} }) {
   name="part_desc"
   value={form.part_desc}
   onChange={change}
+  onBlur={() => saveNewPart(form.part_no, form.part_desc)}
   placeholder="Part Description"
 />
 

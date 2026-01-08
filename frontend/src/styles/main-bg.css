@@ -3,7 +3,7 @@
   min-height: 100vh;
   padding: 24px;
 
-  background-image: url("C:\Users\ATOLE\Desktop\centralized_logistics_regenerated\frontend\src\styles\skyside-bg.png"); /* your sky image */
+  background-image: url('/skyside-bg.png'); /* your sky image */
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;

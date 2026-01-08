@@ -4,15 +4,47 @@ const XLSX = require("xlsx"); // ✅ ADD
 const pool = new Pool({
   connectionString:
     process.env.DATABASE_URL ||
-    "postgres://postgres:password@localhost:5432/erpdb"
+    `postgres://${process.env.DB_USER || 'postgres'}:${process.env.DB_PASSWORD || '6789'}@${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || '5432'}/${process.env.DB_NAME || 'erpdb'}`
 });
 
-// =======================
-// CREATE SHIPMENT
-// =======================
+const nodemailer = require("nodemailer");
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.MAIL_USER,
+    pass: process.env.MAIL_PASS
+  }
+});
 exports.create = async (req, res) => {
+  console.log("Create shipment called with data:", req.body);
   try {
-    const data = req.body;
+
+    // Clean data: convert empty strings to null, parse numbers
+    const cleanData = {};
+    for (const key in req.body) {
+      if (req.body[key] === "") {
+        cleanData[key] = null;
+      } else if (["part_qty", "net_wt", "gross_wt", "total_cost"].includes(key)) {
+        cleanData[key] = req.body[key] ? Number(req.body[key]) : null;
+      } else {
+        cleanData[key] = req.body[key];
+      }
+    }
+
+    // If part_no and part_desc are provided and part doesn't exist, save it
+    if (cleanData.part_no && cleanData.part_desc) {
+      try {
+        await pool.query(
+          `INSERT INTO parts_master (part_no, part_desc)
+           VALUES ($1, $2)
+           ON CONFLICT (part_no) DO NOTHING`,
+          [cleanData.part_no, cleanData.part_desc]
+        );
+      } catch (err) {
+        console.log("Part save failed, continuing:", err.message);
+      }
+    }
 
     const q = `
       INSERT INTO shipments(
@@ -21,22 +53,22 @@ exports.create = async (req, res) => {
         net_wt, gross_wt, package_type, mode,
         dispatch_date, incoterm, sb_no, sb_date,
         etd, bl_no, container_no, eta,
-        final_delivery, total_cost
+        final_delivery, total_cost, status, delivery_status, manual_desc
       )
       VALUES (
         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
-        $13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23
+        $13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26
       )
       RETURNING id
     `;
 
     const vals = [
-      data.enquiry_no, data.ff, data.customer, data.invoice_no, data.invoice_date,
-      data.part_desc, data.part_no, data.part_qty, data.box_size,
-      data.net_wt, data.gross_wt, data.package_type, data.mode,
-      data.dispatch_date, data.incoterm, data.sb_no, data.sb_date,
-      data.etd, data.bl_no, data.container_no, data.eta,
-      data.final_delivery, data.total_cost || 0
+      cleanData.enquiry_no, cleanData.ff, cleanData.customer, cleanData.invoice_no, cleanData.invoice_date,
+      cleanData.part_desc, cleanData.part_no, cleanData.part_qty, cleanData.box_size,
+      cleanData.net_wt, cleanData.gross_wt, cleanData.package_type, cleanData.mode,
+      cleanData.dispatch_date, cleanData.incoterm, cleanData.sb_no, cleanData.sb_date,
+      cleanData.etd, cleanData.bl_no, cleanData.container_no, cleanData.eta,
+      cleanData.final_delivery, cleanData.total_cost, 'ACTIVE', 'IN_PROCESS', cleanData.manual_desc
     ];
 
     const result = await pool.query(q, vals);
@@ -56,6 +88,32 @@ exports.update = async (req, res) => {
     const id = req.params.id;
     const data = req.body;
 
+    // Clean data: convert empty strings to null, parse numbers
+    const cleanData = {};
+    for (const key in data) {
+      if (data[key] === "") {
+        cleanData[key] = null;
+      } else if (["part_qty", "net_wt", "gross_wt", "total_cost"].includes(key)) {
+        cleanData[key] = data[key] ? Number(data[key]) : null;
+      } else {
+        cleanData[key] = data[key];
+      }
+    }
+
+    // If part_no and part_desc are provided and part doesn't exist, save it
+    if (cleanData.part_no && cleanData.part_desc) {
+      try {
+        await pool.query(
+          `INSERT INTO parts_master (part_no, part_desc)
+           VALUES ($1, $2)
+           ON CONFLICT (part_no) DO NOTHING`,
+          [cleanData.part_no, cleanData.part_desc]
+        );
+      } catch (err) {
+        console.log("Part save failed, continuing:", err.message);
+      }
+    }
+
     const q = `
       UPDATE shipments SET
         enquiry_no=$1, ff=$2, customer=$3,
@@ -65,17 +123,18 @@ exports.update = async (req, res) => {
         package_type=$12, mode=$13, dispatch_date=$14,
         incoterm=$15, sb_no=$16, sb_date=$17,
         etd=$18, bl_no=$19, container_no=$20,
-        eta=$21, final_delivery=$22, total_cost=$23
-      WHERE id=$24
+        eta=$21, final_delivery=$22, total_cost=$23,
+        manual_desc=$24
+      WHERE id=$25
     `;
 
     const vals = [
-      data.enquiry_no, data.ff, data.customer, data.invoice_no, data.invoice_date,
-      data.part_desc, data.part_no, data.part_qty, data.box_size,
-      data.net_wt, data.gross_wt, data.package_type, data.mode,
-      data.dispatch_date, data.incoterm, data.sb_no, data.sb_date,
-      data.etd, data.bl_no, data.container_no, data.eta,
-      data.final_delivery, data.total_cost || 0,
+      cleanData.enquiry_no, cleanData.ff, cleanData.customer, cleanData.invoice_no, cleanData.invoice_date,
+      cleanData.part_desc, cleanData.part_no, cleanData.part_qty, cleanData.box_size,
+      cleanData.net_wt, cleanData.gross_wt, cleanData.package_type, cleanData.mode,
+      cleanData.dispatch_date, cleanData.incoterm, cleanData.sb_no, cleanData.sb_date,
+      cleanData.etd, cleanData.bl_no, cleanData.container_no, cleanData.eta,
+      cleanData.final_delivery, cleanData.total_cost, cleanData.manual_desc,
       id
     ];
 
@@ -87,7 +146,6 @@ exports.update = async (req, res) => {
     res.status(500).json({ message: "update failed", error: err.message });
   }
 };
-const nodemailer = require("nodemailer");
 
 exports.sendTrackingMail = async (req, res) => {
   try {
@@ -251,3 +309,13 @@ exports.dashboard = async (req, res) => {
 };
 
 
+async function ensurePartExists(part_no, part_desc) {
+  if (!part_no || !part_desc) return;
+
+  await pool.query(
+    `INSERT INTO parts_master (part_no, part_desc)
+     VALUES ($1, $2)
+     ON CONFLICT (part_no) DO NOTHING`,
+    [part_no, part_desc]
+  );
+}

@@ -60,3 +60,10 @@
   position: relative;
   z-index: 1;
 }
+.main-content {
+  min-height: 100vh;
+  background-image: url("../styles/sidebar-bg.png"); /* your sky image */
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center top;
+}

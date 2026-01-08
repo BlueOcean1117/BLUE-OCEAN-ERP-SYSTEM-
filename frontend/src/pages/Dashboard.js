@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import API from "../services/api";
+import "./Dashboard.css";
 
 import { Bar, Pie } from "react-chartjs-2";
 import {
@@ -68,37 +69,62 @@ export default function Dashboard() {
   };
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>📊 Logistics Dashboard</h2>
-
-      <p><b>Total Shipments:</b> {summary.totalShipments}</p>
-
-      <h4>Mode Wise</h4>
-      <ul>
-        {summary.modeWise.map(m => (
-          <li key={m.mode}>
-            {m.mode}: {m.count}
-          </li>
-        ))}
-      </ul>
-
-      {/* BAR CHART */}
-      <div style={{ maxWidth: 500, marginBottom: 40 }}>
-        <Bar data={modeChartData} />
+    <div className="dashboard-container">
+      <div className="dashboard-header">
+        <h2>📊 Logistics Dashboard</h2>
+        <p className="dashboard-subtitle">Real-time insights into your shipment operations</p>
       </div>
 
-      <h4>Status Wise</h4>
-      <ul>
-        {summary.statusWise.map(s => (
-          <li key={s.status}>
-            {s.status}: {s.count}
-          </li>
-        ))}
-      </ul>
+      <div className="dashboard-stats">
+        <div className="stat-card">
+          <div className="stat-icon">📦</div>
+          <div className="stat-content">
+            <h3>{summary.totalShipments}</h3>
+            <p>Total Shipments</p>
+          </div>
+        </div>
+      </div>
 
-      {/* PIE CHART */}
-      <div style={{ maxWidth: 400 }}>
-        <Pie data={statusChartData} />
+      <div className="dashboard-charts">
+        <div className="chart-card">
+          <h4>Shipments by Mode</h4>
+          <div className="chart-container">
+            <Bar data={modeChartData} options={{ responsive: true, maintainAspectRatio: false }} />
+          </div>
+        </div>
+
+        <div className="chart-card">
+          <h4>Shipments by Status</h4>
+          <div className="chart-container">
+            <Pie data={statusChartData} options={{ responsive: true, maintainAspectRatio: false }} />
+          </div>
+        </div>
+      </div>
+
+      <div className="dashboard-details">
+        <div className="detail-card">
+          <h4>Mode Breakdown</h4>
+          <ul className="detail-list">
+            {summary.modeWise.map(m => (
+              <li key={m.mode} className="detail-item">
+                <span className="detail-label">{m.mode}</span>
+                <span className="detail-value">{m.count}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="detail-card">
+          <h4>Status Breakdown</h4>
+          <ul className="detail-list">
+            {summary.statusWise.map(s => (
+              <li key={s.status} className="detail-item">
+                <span className="detail-label">{s.status}</span>
+                <span className="detail-value">{s.count}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </div>
   );

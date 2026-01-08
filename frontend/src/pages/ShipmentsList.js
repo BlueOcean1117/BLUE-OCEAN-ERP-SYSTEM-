@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import API from "../services/api";
 import "./ShipmentsList.css";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import BulkShipmentUpload from "./BulkShipmentUpload";
 
 
@@ -13,6 +13,8 @@ export default function ShipmentsList() {
 const [savingId, setSavingId] = useState(null);
 
   const navigate = useNavigate();
+  const location = useLocation();
+  const isFirstLoad = useRef(true);
 
   const [rows, setRows] = useState([]);
   const [filteredRows, setFilteredRows] = useState([]); // ✅ NEW
@@ -20,21 +22,50 @@ const [savingId, setSavingId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showStatusAction, setShowStatusAction] = useState(false);
+  const [backendStatus, setBackendStatus] = useState("checking");
 
   useEffect(() => {
-    fetchAll();
+    // Check backend connection first
+    API.get("/test")
+      .then(res => {
+        setBackendStatus(res.data.database === "Connected" ? "connected" : "offline");
+      })
+      .catch(() => {
+        setBackendStatus("disconnected");
+      })
+      .finally(() => {
+        fetchAll();
+      });
   }, []);
 
+  // Refresh data when navigating back to this page
+  useEffect(() => {
+    if (isFirstLoad.current) {
+      isFirstLoad.current = false;
+      return;
+    }
+    fetchAll();
+  }, [location.pathname]);
+
+  /* ===== FETCH ALL SHIPMENTS ===== */
   function fetchAll() {
     setLoading(true);
     setError("");
-
     API.get("/shipments")
       .then(res => {
         setRows(res.data);
-        setFilteredRows(res.data); // ✅ important
+        setFilteredRows(res.data);
       })
-      .catch(() => setError("Failed to load shipments"))
+      .catch(err => {
+        console.error("Failed to load shipments:", err);
+        if (err.code === 'ERR_NETWORK') {
+          setError("Cannot connect to backend server. Please ensure the backend is running on port 4000.");
+        } else {
+          setError("Failed to load shipments. Please try again.");
+        }
+        setRows([]);
+        setFilteredRows([]);
+      })
       .finally(() => setLoading(false));
   }
 
@@ -108,7 +139,18 @@ const [savingId, setSavingId] = useState(null);
   return (
     <div className="shipments-page">
       <div className="shipments-header">
-        <h2>Shipments List</h2>
+        <div>
+          <h2>Shipments List</h2>
+          <div className="backend-status">
+            Backend Status: 
+            <span className={`status-${backendStatus}`}>
+              {backendStatus === "connected" && "🟢 Connected"}
+              {backendStatus === "offline" && "🟡 Offline Mode"}
+              {backendStatus === "disconnected" && "🔴 Disconnected"}
+              {backendStatus === "checking" && "🔵 Checking..."}
+            </span>
+          </div>
+        </div>
         <div className="actions">
           <button className="btn excel" onClick={exportExcel}>Export Excel</button>
           <button className="btn pdf" onClick={exportPDF}>Export PDF</button>
@@ -188,7 +230,7 @@ const [savingId, setSavingId] = useState(null);
                     className="edit-btn"
                     disabled={r.status === "CANCELLED"}
                     onClick={() =>
-                      navigate(`/logistics/edit/${r.id}`, { state: r })
+                      navigate(`/logistics/${r.id}`, { state: r })
                     }
                   >
                     ✏️ Edit
@@ -196,20 +238,18 @@ const [savingId, setSavingId] = useState(null);
                 </td>
 <td>
   <div className="delivery-wrapper">
-  <select
-    className={`delivery-select ${
-      r.delivery_status === "DELIVERED"
-        ? "delivery-delivered"
-        : r.delivery_status === "IN_TRANSIT"
-        ? "delivery-transit"
-        : "delivery-process"
-    }`}
+   <select
+    className={`delivery-select ${r.delivery_status || "IN_PROCESS"}`}
     value={r.delivery_status || "IN_PROCESS"}
     onChange={async (e) => {
-      await API.patch(`/shipments/${r.id}/delivery-status`, {
-        delivery_status: e.target.value
-      });
-      fetchAll();
+      try {
+        await API.patch(`/shipments/${r.id}/delivery-status`, {
+          delivery_status: e.target.value
+        });
+        fetchAll();
+      } catch (err) {
+        alert("Failed to update delivery status");
+      }
     }}
   >
     <option value="IN_PROCESS">In Process</option>
