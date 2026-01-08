@@ -10,7 +10,7 @@ const fileRoutes = require("./routes/files");
 const mailRoutes = require("./routes/mail");
 const pool = require("./db");
 import express from "express";
-import cors from "cors";
+
 
 
 const app = express();
@@ -327,14 +327,11 @@ testDatabaseConnection().then(() => {
   );
 }).catch(() => {
 
-  app.get("/api", (req, res) => {
-  res.json({ status: "Backend is running" });
-});
 
   /* ======================
      START SERVER (OFFLINE MODE)
-  ====================== */
+  ====================== 
   app.listen(PORT, () =>
     console.log(`🚀 ERP API running on port ${PORT} (Offline Mode)`)
-  );
+  );*/
 });
