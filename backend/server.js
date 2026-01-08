@@ -1,3 +1,4 @@
+
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -8,8 +9,20 @@ const shipmentRoutes = require("./routes/shipments");
 const fileRoutes = require("./routes/files");
 const mailRoutes = require("./routes/mail");
 const pool = require("./db");
+import express from "express";
+import cors from "cors";
+
 
 const app = express();
+app.use(cors());
+app.use(express.json());
+
+app.get("/", (req, res) => {
+  res.json({ message: "Backend running on Vercel" });
+});
+
+export default app;
+
 const PORT = 4000;
 
 // Mock data for offline mode
@@ -86,6 +99,9 @@ const mockDashboard = {
     { status: "ACTIVE", count: 2 }
   ]
 };
+
+
+
 
 /* ======================
    MIDDLEWARE
