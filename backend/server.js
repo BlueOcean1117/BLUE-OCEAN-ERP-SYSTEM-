@@ -310,6 +310,11 @@ testDatabaseConnection().then(() => {
     console.log(`🚀 ERP API running on port ${PORT} (${dbConnected ? 'Database Connected' : 'Offline Mode'})`)
   );
 }).catch(() => {
+
+  app.get("/api", (req, res) => {
+  res.json({ status: "Backend is running" });
+});
+
   /* ======================
      START SERVER (OFFLINE MODE)
   ====================== */
