@@ -9,21 +9,10 @@ const shipmentRoutes = require("./routes/shipments");
 const fileRoutes = require("./routes/files");
 const mailRoutes = require("./routes/mail");
 const pool = require("./db");
-import express from "express";
-
-
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+const PORT = process.env.PORT || 4000;
 
-app.get("/", (req, res) => {
-  res.json({ message: "Backend running on Vercel" });
-});
-
-export default app;
-
-const PORT = 4000;
 
 // Mock data for offline mode
 const mockShipments = [
@@ -99,7 +88,6 @@ const mockDashboard = {
     { status: "ACTIVE", count: 2 }
   ]
 };
-
 
 
 
@@ -327,11 +315,14 @@ testDatabaseConnection().then(() => {
   );
 }).catch(() => {
 
+  app.get("/api", (req, res) => {
+  res.json({ status: "Backend is running" });
+});
 
   /* ======================
      START SERVER (OFFLINE MODE)
-  ====================== 
+  ====================== */
   app.listen(PORT, () =>
     console.log(`🚀 ERP API running on port ${PORT} (Offline Mode)`)
-  );*/
+  );
 });
