@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const connectDB = require('./db/connect');
 const path = require("path");
 const { Pool } = require("pg");
 const nodemailer = require("nodemailer");
@@ -127,6 +128,21 @@ async function testDatabaseConnection() {
     return false;
   }
 }
+
+const start = async () => {
+  try {
+    await connectDB();
+    app.listen(PORT, () =>
+      console.log(`🚀 ERP API running on port ${PORT} (MongoDB Connected)`)
+    );
+  } catch (error) {
+    console.error("❌ MongoDB connection failed:", error.message);
+  }
+};
+
+
+
+
 
 // Test connection on startup
 testDatabaseConnection();
