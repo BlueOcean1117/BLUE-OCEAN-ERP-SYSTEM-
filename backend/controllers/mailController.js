@@ -1,4 +1,4 @@
-const nodemailer = require("nodemailer");
+import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
   host: process.env.MAIL_HOST,
@@ -16,7 +16,7 @@ transporter.verify((err) => {
   else console.log("✅ SMTP READY");
 });
 
-exports.sendTrackingMail = async (req, res) => {
+export const sendTrackingMail = async (req, res) => {
   try {
     const {
       fromEmail,

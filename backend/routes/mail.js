@@ -1,6 +1,9 @@
-const router = require("express").Router();
-const mailCtrl = require("../controllers/mailController");
+import express from "express";
+import { sendTrackingMail } from "../controllers/mailController.js";
 
-router.post("/send", mailCtrl.sendTrackingMail);
+const router = express.Router();
 
-module.exports = router;
+router.post("/send", sendTrackingMail);
+
+export default router;
+

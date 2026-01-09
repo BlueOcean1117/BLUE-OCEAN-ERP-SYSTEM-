@@ -1,8 +1,12 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
+
 const FileSchema = new mongoose.Schema({
   filename: String,
   url: String,
   uploadedAt: { type: Date, default: Date.now },
   meta: Object
 });
-module.exports = mongoose.model('File', FileSchema);
+
+const File = mongoose.model('File', FileSchema);
+
+export default File;

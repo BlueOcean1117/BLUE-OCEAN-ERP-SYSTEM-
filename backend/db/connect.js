@@ -1,8 +1,8 @@
-const mongoose = require('mongoose');
-uri = "mongodb+srv://developer_db_user:Rp286c6UI2eDTi9j@cluster0.smkwprl.mongodb.net/developer_db_user?appName=Cluster0";
+import mongoose from "mongoose";
 
-const connectDB = async () => { 
-    return mongoose.connect(uri,{useNewUrlParser: true, useUnifiedTopology: true,}); 
-
+const connectDB = async () => {
+  await mongoose.connect(process.env.MONGODB_URI);
+  console.log("✅ MongoDB Atlas connected");
 };
-module.exports = connectDB;
+
+export default connectDB;

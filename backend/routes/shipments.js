@@ -1,93 +1,59 @@
 // backend/routes/shipments.js
-const router = require("express").Router();
-const ctrl = require("../controllers/shipments");
+import express from "express";
+import XLSX from "xlsx";
+import fs from "fs";
+import Shipment from "../models/Shipment.js";
+import { create, update, list, get, dashboard, sendTrackingMail, bulkUpload } from "../controllers/shipments.js";
+import upload from "../middleware/upload.js";
 
-const XLSX = require("xlsx");
-const fs = require("fs");
-const pool = require("../db");
-const upload = require("../middleware/upload"); // ✅ only once
+const router = express.Router();
 
 // =======================
 // BASIC SHIPMENT ROUTES
 // =======================
-router.post("/", ctrl.create);
-router.put("/:id", ctrl.update);
-router.get("/", ctrl.list);
-router.get("/:id", ctrl.get);
+router.post("/", create);
+router.put("/:id", update);
+router.get("/", list);
+router.get("/:id", get);
 
 // =======================
 // DASHBOARD
 // =======================
-router.get("/dashboard/summary", ctrl.dashboard);
+router.get("/dashboard/summary", dashboard);
 
 // =======================
 // EMAIL
 // =======================
-router.post("/send-mail", ctrl.sendTrackingMail);
+router.post("/send-mail", sendTrackingMail);
 
 // =======================
 // BULK UPLOAD
 // =======================
-router.post("/bulk-upload", upload.single("file"), async (req, res) => {
-  try {
-    const workbook = XLSX.readFile(req.file.path);
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(sheet);
-
-    for (const r of rows) {
-      await pool.query(
-        `INSERT INTO shipments (
-          enquiry_no, customer, ff, invoice_no, invoice_date,
-          part_no, part_desc, part_qty, net_wt, gross_wt,
-          mode, bl_no, container_no, etd, eta, status
-        ) VALUES (
-          $1,$2,$3,$4,$5,
-          $6,$7,$8,$9,$10,
-          $11,$12,$13,$14,$15,$16
-        )`,
-        [
-          r.enquiry_no,
-          r.customer,
-          r.ff,
-          r.invoice_no,
-          r.invoice_date,
-          r.part_no,
-          r.part_desc,
-          r.part_qty,
-          r.net_wt,
-          r.gross_wt,
-          r.mode,
-          r.bl_no,
-          r.container_no,
-          r.etd,
-          r.eta,
-          r.status || "ACTIVE"
-        ]
-      );
-    }
-
-    fs.unlinkSync(req.file.path);
-    res.json({ success: true, total: rows.length });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Bulk upload failed" });
-  }
-});
+router.post("/bulk-upload", upload.single("file"), bulkUpload);
 
 // =======================
-// DELIVERY STATUS
+// DELIVERY STATUS UPDATE
 // =======================
 router.patch("/:id/delivery-status", async (req, res) => {
   const { id } = req.params;
   const { delivery_status } = req.body;
 
-  await pool.query(
-    "UPDATE shipments SET delivery_status = $1 WHERE id = $2",
-    [delivery_status, id]
-  );
+  try {
+    const updatedShipment = await Shipment.findByIdAndUpdate(
+      id,
+      { delivery_status },
+      { new: true }
+    );
 
-  res.json({ success: true });
+    if (!updatedShipment) {
+      return res.status(404).json({ message: "Shipment not found" });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update delivery status" });
+  }
 });
 
 // =======================
@@ -97,12 +63,22 @@ router.patch("/:id/status", async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 
-  await pool.query(
-    "UPDATE shipments SET status = $1 WHERE id = $2",
-    [status, id]
-  );
+  try {
+    const updatedShipment = await Shipment.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    );
 
-  res.json({ success: true });
+    if (!updatedShipment) {
+      return res.status(404).json({ message: "Shipment not found" });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update status" });
+  }
 });
 
 // =======================
@@ -112,12 +88,23 @@ router.put("/:id/manual-desc", async (req, res) => {
   const { id } = req.params;
   const { manual_desc } = req.body;
 
-  await pool.query(
-    "UPDATE shipments SET manual_desc = $1 WHERE id = $2",
-    [manual_desc, id]
-  );
+  try {
+    const updatedShipment = await Shipment.findByIdAndUpdate(
+      id,
+      { manual_desc },
+      { new: true }
+    );
 
-  res.json({ success: true });
+    if (!updatedShipment) {
+      return res.status(404).json({ message: "Shipment not found" });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to update manual description" });
+  }
 });
 
-module.exports = router;
+export default router;
+

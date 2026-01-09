@@ -1,14 +1,23 @@
 // backend/routes/files.js
-const router = require("express").Router();
-const multer = require("multer");
-const path = require("path");
+import express from "express";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const router = express.Router();
 const uploadFolder = path.join(__dirname, "..", "uploads");
-const fs = require("fs");
+
 if(!fs.existsSync(uploadFolder)) fs.mkdirSync(uploadFolder);
+
 const storage = multer.diskStorage({
   destination: (req, file, cb)=> cb(null, uploadFolder),
   filename: (req, file, cb)=> cb(null, Date.now()+"_"+file.originalname)
 });
+
 const upload = multer({ storage });
 
 router.post("/upload", upload.array("files", 10), (req, res)=>{
@@ -17,4 +26,4 @@ router.post("/upload", upload.array("files", 10), (req, res)=>{
   res.json(files);
 });
 
-module.exports = router;
+export default router;
