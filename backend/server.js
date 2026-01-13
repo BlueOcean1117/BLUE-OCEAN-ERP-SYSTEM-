@@ -1,19 +1,39 @@
+const connectDB = require("./db/connect");
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-const { Pool } = require("pg");
+//const { Pool } = require("pg");
 const nodemailer = require("nodemailer");
-const shipmentRoutes = require("./routes/shipments");
+//const Shipment = require("./models/Shipments");
+
 const fileRoutes = require("./routes/files");
 const mailRoutes = require("./routes/mail");
-const pool = require("./db");
+const shipmentRoutes = require("./routes/shipments");
+let pool = null;
+try {
+  pool = require("./db");
+} catch (e) {
+  console.log('Postgres pool not available, continuing in Mongo mode');
+}
+//const pool = require("./db");
+
+
 
 const app = express();
-const PORT = 4000;
+
+// CORS - configurable via environment. Default: allow all origins (use in production with care)
+const corsOrigin = process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : true;
+app.use(
+  cors({ origin: corsOrigin, methods: ["GET", "POST", "PUT", "DELETE", "PATCH"], credentials: true })
+);
+
+app.use(express.json());
+
+//const PORT = process.env.PORT || 4000;
 
 // Mock data for offline mode
-const mockShipments = [
+/*const mockShipments = [
   {
     id: 1,
     enquiry_no: "QMRel-2024-0001",
@@ -85,13 +105,12 @@ const mockDashboard = {
   statusWise: [
     { status: "ACTIVE", count: 2 }
   ]
-};
+};*/
 
 /* ======================
    MIDDLEWARE
 ====================== */
-app.use(cors());
-app.use(express.json());
+// (CORS and json are configured above)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/shipments", shipmentRoutes);
 app.use("/api/files", fileRoutes);
@@ -105,9 +124,9 @@ app.use((req, res, next) => {
 /* ======================
    DATABASE
 ====================== */
-let dbConnected = false;
+//let dbConnected = false;
 
-async function testDatabaseConnection() {
+/*async function testDatabaseConnection() {
   try {
     console.log("🔍 Testing database connection...");
     const client = await pool.connect();
@@ -128,7 +147,7 @@ async function testDatabaseConnection() {
 
 // Test connection on startup
 testDatabaseConnection();
-
+*/
 /* ======================
    MAIL (SMTP - GMAIL)
 ====================== */
@@ -140,10 +159,14 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-transporter.verify((err) => {
-  if (err) console.log("MAIL ERROR:", err);
-  else console.log("MAIL READY");
-});
+if (process.env.MAIL_USER && process.env.MAIL_PASS) {
+  transporter.verify((err) => {
+    if (err) console.log("MAIL ERROR:", err);
+    else console.log("MAIL READY");
+  });
+} else {
+  console.log('MAIL not configured - skipping SMTP verification');
+}
 
 /* ======================
    HELPERS
@@ -157,12 +180,12 @@ function cleanNumber(v) {
 }
 
 /* ======================
-   TEST API
+   TEST API (HEALTH CHECK)
 ====================== */
-app.get("/api/test", async (_, res) => {
+app.get("/api/test", (req, res) => {
   res.json({
     status: "OK",
-    database: dbConnected ? "Connected" : "Offline Mode",
+    database: "MongoDB Atlas",
     timestamp: new Date().toISOString()
   });
 });
@@ -173,52 +196,31 @@ app.get("/api/test", async (_, res) => {
 app.get("/api/enquiry-number", async (_, res) => {
   const year = new Date().getFullYear();
 
-  if (dbConnected) {
-    try {
-      const r = await pool.query(
-        `SELECT MAX(CAST(SPLIT_PART(enquiry_no, '-', 3) AS INTEGER)) as max_seq
-         FROM shipments
-         WHERE enquiry_no LIKE 'QMRel-%-%'`
-      );
-
-      const maxSeq = r.rows[0].max_seq || 0;
-      const seq = maxSeq + 1;
-
-      res.json({
-        enquiryNo: `QMRel-${year}-${String(seq).padStart(4, "0")}`
-      });
-    } catch (err) {
-      console.error("Enquiry number error:", err);
-      res.status(500).json({ error: "Failed to generate enquiry number" });
-    }
-  } else {
-    // Use mock data to generate next number
-    const maxSeq = Math.max(...mockShipments.map(s => {
-      const parts = s.enquiry_no.split('-');
-      return parts.length === 3 ? parseInt(parts[2]) : 0;
-    }));
-    const seq = maxSeq + 1;
+  try {
+    const count = await require("./models/Shipment").countDocuments();
+    const seq = count + 1;
 
     res.json({
       enquiryNo: `QMRel-${year}-${String(seq).padStart(4, "0")}`
     });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to generate enquiry number" });
   }
 });
+
 /* ======================
    FETCH ALL SHIPMENTS
    ====================== */
+const Shipment = require("./models/Shipment");
+
 app.get("/api/shipments", async (_, res) => {
-  if (dbConnected) {
-    try {
-      const r = await pool.query(`SELECT * FROM shipments ORDER BY id DESC`);
-      res.json(r.rows);
-    } catch (err) {
-      console.error("DB query error:", err);
-      res.status(500).json({ error: "Database error" });
-    }
-  } else {
-    // Return mock data
-    res.json(mockShipments);
+  try {
+    const shipments = await Shipment.find().sort({ createdAt: -1 });
+    res.json(shipments);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch shipments" });
   }
 });
 
@@ -226,36 +228,32 @@ app.get("/api/shipments", async (_, res) => {
    DASHBOARD SUMMARY
 ====================== */
 app.get("/api/shipments/dashboard/summary", async (_, res) => {
-  if (dbConnected) {
-    try {
-      const total = await pool.query("SELECT COUNT(*) FROM shipments");
+  try {
+    const totalShipments = await Shipment.countDocuments();
 
-      const modeWise = await pool.query(`
-        SELECT mode, COUNT(*) FROM shipments GROUP BY mode
-      `);
+    const modeWise = await Shipment.aggregate([
+      { $group: { _id: "$mode", count: { $sum: 1 } } },
+      { $project: { mode: "$_id", count: 1, _id: 0 } }
+    ]);
 
-      const statusWise = await pool.query(`
-        SELECT status, COUNT(*) FROM shipments GROUP BY status
-      `);
+    const statusWise = await Shipment.aggregate([
+      { $group: { _id: "$status", count: { $sum: 1 } } },
+      { $project: { status: "$_id", count: 1, _id: 0 } }
+    ]);
 
-      res.json({
-        totalShipments: Number(total.rows[0].count),
-        modeWise: modeWise.rows,
-        statusWise: statusWise.rows
-      });
-    } catch (e) {
-      res.status(500).json({ error: "Dashboard fetch failed" });
-    }
-  } else {
-    // Return mock data
-    res.json(mockDashboard);
+    res.json({ totalShipments, modeWise, statusWise });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Dashboard fetch failed" });
   }
 });
+
 
 /* ======================
    PART MASTER
 ====================== */
 app.get("/api/parts/:partNo", async (req, res) => {
+  if (!pool) return res.status(501).json({ error: 'Parts API requires Postgres pool (not configured)' });
   const r = await pool.query(
     "SELECT part_desc FROM parts_master WHERE part_no=$1",
     [req.params.partNo]
@@ -269,6 +267,7 @@ app.post("/api/parts", async (req, res) => {
     return res.status(400).json({ error: "Missing data" });
   }
 
+  if (!pool) return res.status(501).json({ error: 'Parts API requires Postgres pool (not configured)' });
   await pool.query(
     `INSERT INTO parts_master (part_no, part_desc)
      VALUES ($1, $2)
@@ -301,19 +300,32 @@ app.post("/api/shipments/send-email", async (req, res) => {
   }
 });
 
-// Test connection on startup
-testDatabaseConnection().then(() => {
-  /* ======================
-     START SERVER
-  ====================== */
-  app.listen(PORT, () =>
-    console.log(`🚀 ERP API running on port ${PORT} (${dbConnected ? 'Database Connected' : 'Offline Mode'})`)
-  );
-}).catch(() => {
-  /* ======================
-     START SERVER (OFFLINE MODE)
-  ====================== */
-  app.listen(PORT, () =>
-    console.log(`🚀 ERP API running on port ${PORT} (Offline Mode)`)
-  );
+/* Test connection on startup
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`🚀 ERP API running on port ${PORT}`);
+  });
 });
+*/
+
+ /* ======================
+   START SERVER (AFTER DB)
+====================== */
+const PORT = process.env.PORT || 10000;
+const HOST = process.env.HOST || '0.0.0.0';
+
+const startServer = async () => {
+  try {
+    await connectDB(); // attempt MongoDB Atlas connect if MONGO_URI set
+  } catch (err) {
+    console.error("⚠️ MongoDB connect failed:", err.message);
+    console.log("⚠️ Continuing startup without MongoDB (degraded mode)");
+  }
+
+  // Start server regardless of Mongo status (Postgres or mocked routes may still work)
+  app.listen(PORT, HOST, () => {
+    console.log(`🚀 ERP API running on ${HOST}:${PORT}`);
+  });
+};
+
+startServer();
