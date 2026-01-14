@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import API from "../services/api";
 import "./Dashboard.css";
+import DbTestButton from "../layout/DbTestButton";
+
 
 import { Bar, Pie } from "react-chartjs-2";
 import {
@@ -84,7 +86,15 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+<div>
+      <h2>Dashboard</h2>
 
+      {/* ALWAYS VISIBLE */}
+      <DbTestButton />
+
+      {/* rest of dashboard */}
+    </div>
+  
       <div className="dashboard-charts">
         <div className="chart-card">
           <h4>Shipments by Mode</h4>
