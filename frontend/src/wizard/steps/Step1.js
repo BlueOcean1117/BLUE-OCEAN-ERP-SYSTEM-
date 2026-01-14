@@ -35,26 +35,29 @@ export default function Step1({ initial = {}, onNext, onUpdate = () => {} }) {
     ...initial
   });
 
-  /* ============================
-     AUTO ENQUIRY NUMBER
-  ============================ */
-  useEffect(() => {
-    if (form.enquiry_no) return;
+ /* ============================
+   AUTO ENQUIRY NUMBER
+============================ */
+useEffect(() => {
+  if (form.enquiry_no) return;
 
-    fetch("http://localhost:4000/api/enquiry-number")
-      .then(res => res.json())
-      .then(data => {
-        if (data?.enquiryNo) {
-          setForm(prev => ({ ...prev, enquiry_no: data.enquiryNo }));
-          onUpdate({ enquiry_no: data.enquiryNo });
-        }
-      })
-      .catch(() => {
-        const fallback = `QMRel-${Date.now()}`;
-        setForm(prev => ({ ...prev, enquiry_no: fallback }));
-        onUpdate({ enquiry_no: fallback });
-      });
-  }, [form.enquiry_no, onUpdate]);
+  const API_URL =
+    process.env.REACT_APP_API_URL || "http://localhost:4000/api";
+
+  fetch(`${API_URL}/enquiry-number`)
+    .then(res => res.json())
+    .then(data => {
+      if (data?.enquiryNo) {
+        setForm(prev => ({ ...prev, enquiry_no: data.enquiryNo }));
+        onUpdate({ enquiry_no: data.enquiryNo });
+      }
+    })
+    .catch(() => {
+      const fallback = `QMRel-${Date.now()}`;
+      setForm(prev => ({ ...prev, enquiry_no: fallback }));
+      onUpdate({ enquiry_no: fallback });
+    });
+}, [form.enquiry_no, onUpdate]);
 
   /* ============================
      AUTO FETCH PART DESCRIPTION

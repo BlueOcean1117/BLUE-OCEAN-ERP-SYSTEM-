@@ -29,9 +29,50 @@ app.use(
 );
 
 app.use(express.json());
+//testing the connectivity of the database  
+const mongoose = require("mongoose");
+
+/* ======================
+   TEMP: DB CONNECTION TEST
+====================== */
+app.get("/api/db-test", async (req, res) => {
+  try {
+    // Check mongoose connection state
+    const state = mongoose.connection.readyState;
+
+    /*
+      0 = disconnected
+      1 = connected
+      2 = connecting
+      3 = disconnecting
+    */
+
+    if (state === 1) {
+      return res.json({
+        success: true,
+        message: "✅ MongoDB Atlas connected",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "❌ MongoDB not connected",
+      state,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "❌ MongoDB test failed",
+      error: err.message,
+    });
+  }
+});
+
+
+
+
 
 //const PORT = process.env.PORT || 4000;
-
 // Mock data for offline mode
 /*const mockShipments = [
   {
