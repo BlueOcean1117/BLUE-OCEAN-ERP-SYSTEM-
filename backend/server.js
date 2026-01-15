@@ -35,25 +35,35 @@ const mongoose = require("mongoose");
 /* ======================
    TEMP: DB CONNECTION TEST
 ====================== */
-app.get("/api/db-check", async (req, res) => {
+app.get("/api/db-test", async (req, res) => {
   try {
-    const state = require("mongoose").connection.readyState;
+    // Check mongoose connection state
+    const state = mongoose.connection.readyState;
+
+    /*
+      0 = disconnected
+      1 = connected
+      2 = connecting
+      3 = disconnecting
+    */
 
     if (state === 1) {
       return res.json({
         success: true,
-        message: "✅ MongoDB Atlas is connected"
+        message: "✅ MongoDB Atlas connected",
       });
     }
 
-    res.json({
+    return res.status(500).json({
       success: false,
-      message: "❌ MongoDB not connected"
+      message: "❌ MongoDB not connected",
+      state,
     });
   } catch (err) {
     res.status(500).json({
       success: false,
-      message: "Error checking DB connection"
+      message: "❌ MongoDB test failed",
+      error: err.message,
     });
   }
 });
@@ -245,13 +255,20 @@ app.get("/api/enquiry-number", async (_, res) => {
    ====================== */
 const Shipment = require("./models/Shipment");
 
-app.get("/api/shipments", async (_, res) => {
+app.get("/api/shipments", async (req, res) => {
   try {
-    const shipments = await Shipment.find().sort({ createdAt: -1 });
+    console.log("➡️ HIT /api/shipments");
+
+    const shipments = await Shipment.find();
+    console.log("📦 Shipments fetched:", shipments.length);
+
     res.json(shipments);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to fetch shipments" });
+    console.error("❌ SHIPMENTS API ERROR:", err.message);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
   }
 });
 
