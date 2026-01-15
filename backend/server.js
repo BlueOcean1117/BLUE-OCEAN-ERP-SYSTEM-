@@ -35,35 +35,25 @@ const mongoose = require("mongoose");
 /* ======================
    TEMP: DB CONNECTION TEST
 ====================== */
-app.get("/api/db-test", async (req, res) => {
+app.get("/api/db-check", async (req, res) => {
   try {
-    // Check mongoose connection state
-    const state = mongoose.connection.readyState;
-
-    /*
-      0 = disconnected
-      1 = connected
-      2 = connecting
-      3 = disconnecting
-    */
+    const state = require("mongoose").connection.readyState;
 
     if (state === 1) {
       return res.json({
         success: true,
-        message: "✅ MongoDB Atlas connected",
+        message: "✅ MongoDB Atlas is connected"
       });
     }
 
-    return res.status(500).json({
+    res.json({
       success: false,
-      message: "❌ MongoDB not connected",
-      state,
+      message: "❌ MongoDB not connected"
     });
   } catch (err) {
     res.status(500).json({
       success: false,
-      message: "❌ MongoDB test failed",
-      error: err.message,
+      message: "Error checking DB connection"
     });
   }
 });

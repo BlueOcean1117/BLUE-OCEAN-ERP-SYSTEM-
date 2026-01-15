@@ -371,3 +371,17 @@ body, html {
     grid-template-columns: 1fr;
   }
 }
+/* DbCheckButton.css */
+button {
+  padding: 8px 14px;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+button:hover {
+  background-color: #1e40af;
+}

@@ -5,12 +5,18 @@ import Dashboard from "./pages/Dashboard";
 import Logistics from "./pages/Logistics";
 import Reports from "./pages/Reports";
 import ShipmentsList from "./pages/ShipmentsList";
+import DbCheckButton from "./DbCheckButton";
 import "./index.css";
 
 
 export default function App() {
   return (
     <Router>
+      <div>
+      <h2>Database Test</h2>
+      <DbCheckButton />
+    </div>
+  
       <div className="app-root">
         <aside className="sidebar">
           <div className="brand">Centralized Logistics</div>
@@ -35,10 +41,12 @@ export default function App() {
 
           <div className="content">
             <Routes>
+              
               <Route path="/" element={<Dashboard />} />
               <Route path="/logistics/:id?" element={<Logistics />} />
               <Route path="/shipments" element={<ShipmentsList />} />
               <Route path="/reports" element={<Reports />} />
+              
             </Routes>
           </div>
         </main>
