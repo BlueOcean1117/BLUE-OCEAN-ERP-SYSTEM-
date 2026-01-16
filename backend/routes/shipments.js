@@ -119,5 +119,10 @@ router.put("/:id/manual-desc", async (req, res) => {
 
   res.json({ success: true });
 });
+router.post("/shipments", async (req, res) => {
+  const shipment = await Shipment.create(req.body);
+  res.json(shipment);
+});
+
 
 module.exports = router;

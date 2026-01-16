@@ -41,7 +41,7 @@ export default function Wizard() {
       // ✅ EDIT MODE
       if (id) {
         res = await axios.put(
-          `${API_URL}/shipments/${id}`,
+          `${API_URL}/api/shipments/${id}`,
           data,
           {
             headers: { "Content-Type": "application/json" },
@@ -53,7 +53,7 @@ export default function Wizard() {
       // ✅ EDIT MODE → UPDATE
       if (id) {
       res = await axios.put(
-        `${API_URL}/shipments/${id}`,
+        `${API_URL}/api/shipments/${id}`,
         data,
         {
           headers: { "Content-Type": "application/json" },
@@ -66,7 +66,7 @@ export default function Wizard() {
       // ✅ CREATE MODE → INSERT
       else {
         res = await axios.post(
-          `${API_URL}/shipments`,
+          `${API_URL}/api/shipments`,
           data,
           {
             headers: { "Content-Type": "application/json" },

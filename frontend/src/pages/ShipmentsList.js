@@ -26,10 +26,10 @@ const [savingId, setSavingId] = useState(null);
 
   useEffect(() => {
     // Check backend connection first
-    API.get("/test")
-      .then(res => {
-        setBackendStatus(res.data.database === "Connected" ? "connected" : "offline");
-      })
+    API.get("/api/test")
+  .then(res => {
+    setBackendStatus(res.data.status === "OK" ? "connected" : "offline");
+  })
       .catch(() => {
         setBackendStatus("disconnected");
       })
@@ -51,10 +51,12 @@ const [savingId, setSavingId] = useState(null);
   function fetchAll() {
     setLoading(true);
     setError("");
-    API.get("/shipments")
+   API.get("/api/shipments")
       .then(res => {
-        setRows(res.data);
-        setFilteredRows(res.data);
+       const data = Array.isArray(res.data) ? res.data : res.data.data;
+setRows(data);
+setFilteredRows(data);
+
       })
       .catch(err => {
         console.error("Failed to load shipments:", err);
@@ -94,7 +96,7 @@ const [savingId, setSavingId] = useState(null);
 
   /* ===== STATUS UPDATE ===== */
   function updateStatus(id, status) {
-    API.patch(`/shipments/${id}/status`, { status })
+    API.patch(`/api/shipments/${id}/status`, { status })
       .then(fetchAll)
       .catch(() => alert("Status update failed"));
   }
@@ -243,7 +245,7 @@ const [savingId, setSavingId] = useState(null);
     value={r.delivery_status || "IN_PROCESS"}
     onChange={async (e) => {
       try {
-        await API.patch(`/shipments/${r.id}/delivery-status`, {
+        await API.patch(`/api/shipments/${r.id}/delivery-status`, {
           delivery_status: e.target.value
         });
         fetchAll();
@@ -302,7 +304,7 @@ const [savingId, setSavingId] = useState(null);
     onClick={async () => {
       try {
         setSavingId(r.id);
-        await API.put(`/shipments/${r.id}/manual-desc`, {
+        await API.put(`/api/shipments/${r.id}/manual-desc`, {
           manual_desc: descValues[r.id]
         });
         alert("Description saved ✅");

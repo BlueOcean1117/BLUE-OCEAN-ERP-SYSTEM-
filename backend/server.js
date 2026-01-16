@@ -238,7 +238,7 @@ app.get("/api/enquiry-number", async (_, res) => {
   const year = new Date().getFullYear();
 
   try {
-    const count = await require("./models/Shipment").countDocuments();
+    const count = await require("/api/models/Shipment").countDocuments();
     const seq = count + 1;
 
     res.json({
@@ -327,7 +327,7 @@ app.post("/api/parts", async (req, res) => {
 });
 
 
-/* ======================
+/* =======================
    SEND EMAIL (STEP 2)
 ====================== */
 app.post("/api/shipments/send-email", async (req, res) => {

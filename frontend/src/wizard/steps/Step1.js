@@ -42,9 +42,9 @@ useEffect(() => {
   if (form.enquiry_no) return;
 
   const API_URL =
-    process.env.REACT_APP_API_URL || "http://localhost:4000/api";
+    process.env.REACT_APP_API_URL || "http://localhost:10000/api";
 
-  fetch(`${API_URL}/enquiry-number`)
+  fetch(`${API_URL}/api/enquiry-number`)
     .then(res => res.json())
     .then(data => {
       if (data?.enquiryNo) {
@@ -65,7 +65,7 @@ useEffect(() => {
   useEffect(() => {
     if (!form.part_no) return;
 
-    API.get(`/parts/${form.part_no}`)
+    API.get(`/api/parts/${form.part_no}`)
       .then(res => {
         if (res.data?.part_desc) {
           setForm(prev => ({
@@ -87,7 +87,7 @@ useEffect(() => {
   const saveNewPart = async (partNo, partDesc) => {
     if (!partNo || !partDesc) return;
     try {
-      await API.post("/parts", { part_no: partNo, part_desc: partDesc });
+      await API.post("/api/parts", { part_no: partNo, part_desc: partDesc });
       console.log("New part saved:", partNo);
     } catch (err) {
       console.log("Failed to save part:", err);
