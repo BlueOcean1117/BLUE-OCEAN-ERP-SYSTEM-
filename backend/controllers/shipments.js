@@ -1,13 +1,8 @@
 // backend/controllers/shipments.js
-const { Pool } = require("pg");
-const XLSX = require("xlsx"); // ✅ ADD
-const pool = new Pool({
-  connectionString:
-    process.env.DATABASE_URL ||
-    `postgres://${process.env.DB_USER || 'postgres'}:${process.env.DB_PASSWORD || '6789'}@${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || '5432'}/${process.env.DB_NAME || 'erpdb'}`
-});
-
+const XLSX = require("xlsx");
 const nodemailer = require("nodemailer");
+const Shipment = require("../models/Shipment");
+const Part = require("../models/Part");
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -32,47 +27,18 @@ exports.create = async (req, res) => {
       }
     }
 
-    // If part_no and part_desc are provided and part doesn't exist, save it
+    // Create via Mongoose
+    const doc = await Shipment.create({ ...cleanData, status: cleanData.status || 'ACTIVE', delivery_status: cleanData.delivery_status || 'IN_PROCESS' });
+    // ensure part saved in parts collection
     if (cleanData.part_no && cleanData.part_desc) {
       try {
-        await pool.query(
-          `INSERT INTO parts_master (part_no, part_desc)
-           VALUES ($1, $2)
-           ON CONFLICT (part_no) DO NOTHING`,
-          [cleanData.part_no, cleanData.part_desc]
-        );
-      } catch (err) {
-        console.log("Part save failed, continuing:", err.message);
+        await Part.updateOne({ part_no: cleanData.part_no }, { $setOnInsert: { part_desc: cleanData.part_desc } }, { upsert: true });
+      } catch (e) {
+        console.log("Part save failed:", e.message);
       }
     }
 
-    const q = `
-      INSERT INTO shipments(
-        enquiry_no, ff, customer, invoice_no, invoice_date,
-        part_desc, part_no, part_qty, box_size,
-        net_wt, gross_wt, package_type, mode,
-        dispatch_date, incoterm, sb_no, sb_date,
-        etd, bl_no, container_no, eta,
-        final_delivery, total_cost, status, delivery_status, manual_desc
-      )
-      VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
-        $13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26
-      )
-      RETURNING id
-    `;
-
-    const vals = [
-      cleanData.enquiry_no, cleanData.ff, cleanData.customer, cleanData.invoice_no, cleanData.invoice_date,
-      cleanData.part_desc, cleanData.part_no, cleanData.part_qty, cleanData.box_size,
-      cleanData.net_wt, cleanData.gross_wt, cleanData.package_type, cleanData.mode,
-      cleanData.dispatch_date, cleanData.incoterm, cleanData.sb_no, cleanData.sb_date,
-      cleanData.etd, cleanData.bl_no, cleanData.container_no, cleanData.eta,
-      cleanData.final_delivery, cleanData.total_cost, 'ACTIVE', 'IN_PROCESS', cleanData.manual_desc
-    ];
-
-    const result = await pool.query(q, vals);
-    res.json({ id: result.rows[0].id });
+    return res.json({ id: doc._id });
 
   } catch (err) {
     console.error(err);
@@ -100,46 +66,18 @@ exports.update = async (req, res) => {
       }
     }
 
-    // If part_no and part_desc are provided and part doesn't exist, save it
+    // Update via Mongoose
     if (cleanData.part_no && cleanData.part_desc) {
       try {
-        await pool.query(
-          `INSERT INTO parts_master (part_no, part_desc)
-           VALUES ($1, $2)
-           ON CONFLICT (part_no) DO NOTHING`,
-          [cleanData.part_no, cleanData.part_desc]
-        );
-      } catch (err) {
-        console.log("Part save failed, continuing:", err.message);
+        await Part.updateOne({ part_no: cleanData.part_no }, { $setOnInsert: { part_desc: cleanData.part_desc } }, { upsert: true });
+      } catch (e) {
+        console.log("Part save failed:", e.message);
       }
     }
 
-    const q = `
-      UPDATE shipments SET
-        enquiry_no=$1, ff=$2, customer=$3,
-        invoice_no=$4, invoice_date=$5,
-        part_desc=$6, part_no=$7, part_qty=$8,
-        box_size=$9, net_wt=$10, gross_wt=$11,
-        package_type=$12, mode=$13, dispatch_date=$14,
-        incoterm=$15, sb_no=$16, sb_date=$17,
-        etd=$18, bl_no=$19, container_no=$20,
-        eta=$21, final_delivery=$22, total_cost=$23,
-        manual_desc=$24
-      WHERE id=$25
-    `;
-
-    const vals = [
-      cleanData.enquiry_no, cleanData.ff, cleanData.customer, cleanData.invoice_no, cleanData.invoice_date,
-      cleanData.part_desc, cleanData.part_no, cleanData.part_qty, cleanData.box_size,
-      cleanData.net_wt, cleanData.gross_wt, cleanData.package_type, cleanData.mode,
-      cleanData.dispatch_date, cleanData.incoterm, cleanData.sb_no, cleanData.sb_date,
-      cleanData.etd, cleanData.bl_no, cleanData.container_no, cleanData.eta,
-      cleanData.final_delivery, cleanData.total_cost, cleanData.manual_desc,
-      id
-    ];
-
-    await pool.query(q, vals);
-    res.json({ message: "updated" });
+    const updated = await Shipment.findByIdAndUpdate(id, cleanData, { new: true });
+    if (!updated) return res.status(404).json({ message: 'not found' });
+    return res.json({ message: 'updated', id: updated._id });
 
   } catch (err) {
     console.error(err);
@@ -181,36 +119,31 @@ exports.sendTrackingMail = async (req, res) => {
 // =======================
 // GET ONE
 // =======================
+
+
 exports.get = async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT * FROM shipments WHERE id=$1`,
-      [req.params.id]
-    );
-    if (!result.rows.length) return res.status(404).json({ message: "not found" });
-    res.json(result.rows[0]);
+    const shipment = await Shipment.findById(req.params.id).lean();
+    if (!shipment) return res.status(404).json(null);
+    return res.json(shipment);
   } catch (err) {
-    res.status(500).json({ message: "fetch failed", error: err.message });
+    console.error("Shipment get error:", err);
+    return res.status(500).json(null);
   }
 };
-
 // =======================
 // LIST
 // =======================
+ 
 exports.list = async (req, res) => {
   try {
-    const q = `
-      SELECT * FROM shipments
-      ORDER BY id DESC
-      LIMIT 500
-    `;
-    const result = await pool.query(q);
-    res.json(result.rows);
+    const shipments = await Shipment.find().sort({ createdAt: -1 }).lean();
+    return res.json(shipments);
   } catch (err) {
-    res.status(500).json({ message: "list failed", error: err.message });
+    console.error(err);
+    res.status(500).json([]);
   }
 };
-
 // ==================================================
 // ✅ BULK UPLOAD FROM EXCEL (NEW)
 // ==================================================
@@ -227,44 +160,29 @@ exports.bulkUpload = async (req, res) => {
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(sheet);
 
-    for (const r of rows) {
-      await pool.query(
-        `INSERT INTO shipments (
-          customer, ff, invoice_no,
-          part_no, part_desc, part_qty,
-          net_wt, gross_wt, mode,
-          bl_no, container_no,
-          etd, eta, final_delivery,
-          total_cost, status
-        ) VALUES (
-          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'ACTIVE'
-        )`,
-        [
-          r.customer,
-          r.ff,
-          r.invoice_no,
-          r.part_no,
-          r.part_desc,
-          r.part_qty,
-          r.net_wt,
-          r.gross_wt,
-          r.mode,
-          r.bl_no,
-          r.container_no,
-          r.etd,
-          r.eta,
-          r.final_delivery,
-          r.total_cost
-        ]
-      );
-    }
-
+    const docs = rows.map((r) => ({
+      enquiry_no: r.enquiry_no,
+      ff: r.ff,
+      customer: r.customer,
+      invoice_no: r.invoice_no,
+      invoice_date: r.invoice_date,
+      part_no: r.part_no,
+      part_desc: r.part_desc,
+      part_qty: r.part_qty,
+      net_wt: r.net_wt,
+      gross_wt: r.gross_wt,
+      mode: r.mode,
+      bl_no: r.bl_no,
+      container_no: r.container_no,
+      etd: r.etd,
+      eta: r.eta,
+      final_delivery: r.final_delivery,
+      total_cost: r.total_cost,
+      status: r.status || 'ACTIVE'
+    }));
+    await Shipment.insertMany(docs);
     fs.unlinkSync(req.file.path);
-
-    res.json({
-      success: true,
-      inserted: rows.length
-    });
+    return res.json({ success: true, inserted: docs.length });
 
   } catch (err) {
     console.error("Bulk upload error:", err);
@@ -283,39 +201,31 @@ exports.exportPDF = (req, res) => {
   res.status(501).json({ message: "Export PDF not implemented" });
 };
 
-//dashboard part 
+// Dashboard summary
 exports.dashboard = async (req, res) => {
   try {
-    const total = await pool.query(`SELECT COUNT(*) FROM shipments`);
-    const modeWise = await pool.query(`
-      SELECT mode, COUNT(*) as count
-      FROM shipments
-      GROUP BY mode
-    `);
-    const statusWise = await pool.query(`
-      SELECT status, COUNT(*) as count
-      FROM shipments
-      GROUP BY status
-    `);
+    const totalShipments = await Shipment.countDocuments();
+    const modeAgg = await Shipment.aggregate([
+      { $group: { _id: '$mode', count: { $sum: 1 } } }
+    ]);
+    const statusAgg = await Shipment.aggregate([
+      { $group: { _id: '$status', count: { $sum: 1 } } }
+    ]);
 
-    res.json({
-      totalShipments: Number(total.rows[0].count),
-      modeWise: modeWise.rows,
-      statusWise: statusWise.rows
-    });
+    const modeWise = modeAgg.map(m => ({ mode: m._id, count: m.count }));
+    const statusWise = statusAgg.map(s => ({ status: s._id, count: s.count }));
+
+    return res.json({ totalShipments, modeWise, statusWise });
   } catch (e) {
     res.status(500).json({ message: "Dashboard fetch failed" });
   }
 };
 
-
 async function ensurePartExists(part_no, part_desc) {
   if (!part_no || !part_desc) return;
-
-  await pool.query(
-    `INSERT INTO parts_master (part_no, part_desc)
-     VALUES ($1, $2)
-     ON CONFLICT (part_no) DO NOTHING`,
-    [part_no, part_desc]
-  );
+  try {
+    await Part.updateOne({ part_no }, { part_no, part_desc }, { upsert: true });
+  } catch (e) {
+    console.log('ensurePartExists error', e.message);
+  }
 }

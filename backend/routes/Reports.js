@@ -1,43 +1,35 @@
-/*const express = require("express");
-const pool = require("../db");     // adjust if db.js path differs
+const express = require("express");
+const Shipment = require("../models/Shipment");
 const { Parser } = require("json2csv");
 
 const router = express.Router();
 
-/* TEST ROUTE (VERY IMPORTANT) */
-//router.get("/test", (req, res) => {
+router.get("/test", (req, res) => {
   res.send("REPORT ROUTES WORKING");
-//});
+});
 
-/* MONTHLY CSV DOWNLOAD */
-//router.get("/export/monthly/csv", async (req, res) => {
+// Monthly CSV export via Mongo aggregation
+router.get("/export/monthly/csv", async (req, res) => {
   try {
     const { month, year } = req.query;
+    const m = Number(month);
+    const y = Number(year);
 
-    const result = await pool.query(
-      `
-      SELECT * FROM shipments
-      WHERE EXTRACT(MONTH FROM created_at) = $1
-      AND EXTRACT(YEAR FROM created_at) = $2
-      `,
-      [month, year]
-    );
+    const docs = await Shipment.aggregate([
+      { $addFields: { month: { $month: "$createdAt" }, year: { $year: "$createdAt" } } },
+      { $match: { month: m, year: y } }
+    ]);
 
     const parser = new Parser();
-    const csv = parser.parse(result.rows);
+    const csv = parser.parse(docs);
 
     res.setHeader("Content-Type", "text/csv");
-    res.setHeader(
-      "Content-Disposition",
-      "attachment; filename=monthly-report.csv"
-    );
-
+    res.setHeader("Content-Disposition", "attachment; filename=monthly-report.csv");
     res.send(csv);
   } catch (err) {
     console.error(err);
     res.status(500).send("CSV generation failed");
   }
-//});
+});
 
-//module.exports = router;
-//*/
+module.exports = router;

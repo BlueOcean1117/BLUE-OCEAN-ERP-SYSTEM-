@@ -1,36 +1,52 @@
 const connectDB = require("./db/connect");
 require("dotenv").config();
 const express = require("express");
+const mongoose = require("mongoose");
 const cors = require("cors");
 const path = require("path");
-//const { Pool } = require("pg");
+
 const nodemailer = require("nodemailer");
-//const Shipment = require("./models/Shipments");
+
 
 const fileRoutes = require("./routes/files");
 const mailRoutes = require("./routes/mail");
 const shipmentRoutes = require("./routes/shipments");
-let pool = null;
-try {
-  pool = require("./db");
-} catch (e) {
-  console.log('Postgres pool not available, continuing in Mongo mode');
-}
-//const pool = require("./db");
+// Postgres removed: only MongoDB (Mongoose) is used now.
+
+
 
 
 
 const app = express();
 
 // CORS - configurable via environment. Default: allow all origins (use in production with care)
-const corsOrigin = process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : true;
-app.use(
-  cors({ origin: corsOrigin, methods: ["GET", "POST", "PUT", "DELETE", "PATCH"], credentials: true })
-);
 
-app.use(express.json());
-//testing the connectivity of the database  
-const mongoose = require("mongoose");
+const allowedOrigins = [
+  "https://blue-ocean-erp-system-1.vercel.app",
+  process.env.FRONTEND_URL,
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173"
+].filter(Boolean);
+
+app.use(cors({
+  origin: function(origin, callback) {
+    // allow requests with no origin (like curl, Postman)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    }
+    // in dev it's fine to allow local origins; otherwise block
+    return callback(new Error('CORS policy: origin not allowed'), false);
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: false
+}));
+
+app.options("*", cors());
+
 
 /* ======================
    TEMP: DB CONNECTION TEST
@@ -231,6 +247,11 @@ app.get("/api/test", (req, res) => {
   });
 });
 
+// Simple root route for quick checks
+app.get('/', (req, res) => {
+  res.send('ERP Backend running. Use /api/test for health.');
+});
+
 /* ======================
    ENQUIRY NUMBER
 ====================== */
@@ -238,7 +259,7 @@ app.get("/api/enquiry-number", async (_, res) => {
   const year = new Date().getFullYear();
 
   try {
-    const count = await require("/api/models/Shipment").countDocuments();
+    const count = await require("./models/Shipment").countDocuments();
     const seq = count + 1;
 
     res.json({
@@ -257,73 +278,64 @@ const Shipment = require("./models/Shipment");
 
 app.get("/api/shipments", async (req, res) => {
   try {
-    console.log("➡️ HIT /api/shipments");
+    console.log("➡️ MongoDB /api/shipments hit");
 
-    const shipments = await Shipment.find();
-    console.log("📦 Shipments fetched:", shipments.length);
-
+    const shipments = await Shipment.find().lean();
     res.json(shipments);
   } catch (err) {
-    console.error("❌ SHIPMENTS API ERROR:", err.message);
-    res.status(500).json({
-      success: false,
-      error: err.message
-    });
+    console.error("❌ MongoDB fetch failed:", err);
+    res.status(500).json({ error: err.message });
   }
 });
+
 
 /* ======================
    DASHBOARD SUMMARY
 ====================== */
-app.get("/api/shipments/dashboard/summary", async (_, res) => {
+app.get("/api/dashboard/summary", async (req, res) => {
   try {
     const totalShipments = await Shipment.countDocuments();
+    const activeShipments = await Shipment.countDocuments({ status: "ACTIVE" });
+    const deliveredShipments = await Shipment.countDocuments({ delivery_status: "DELIVERED" });
+    const inTransitShipments = await Shipment.countDocuments({ delivery_status: "IN_TRANSIT" });
 
-    const modeWise = await Shipment.aggregate([
-      { $group: { _id: "$mode", count: { $sum: 1 } } },
-      { $project: { mode: "$_id", count: 1, _id: 0 } }
-    ]);
-
-    const statusWise = await Shipment.aggregate([
-      { $group: { _id: "$status", count: { $sum: 1 } } },
-      { $project: { status: "$_id", count: 1, _id: 0 } }
-    ]);
-
-    res.json({ totalShipments, modeWise, statusWise });
+    res.json({
+      totalShipments,
+      activeShipments,
+      deliveredShipments,
+      inTransitShipments
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Dashboard fetch failed" });
+    console.error("Dashboard summary error:", err);
+    res.status(500).json({ message: "Dashboard summary failed" });
   }
 });
+
 
 
 /* ======================
    PART MASTER
 ====================== */
+const Part = require("./models/Part");
+
 app.get("/api/parts/:partNo", async (req, res) => {
-  if (!pool) return res.status(501).json({ error: 'Parts API requires Postgres pool (not configured)' });
-  const r = await pool.query(
-    "SELECT part_desc FROM parts_master WHERE part_no=$1",
-    [req.params.partNo]
-  );
-  res.json(r.rows[0] || {});
-});
-app.post("/api/parts", async (req, res) => {
-  const { part_no, part_desc } = req.body;
-
-  if (!part_no || !part_desc) {
-    return res.status(400).json({ error: "Missing data" });
+  try {
+    const p = await Part.findOne({ part_no: req.params.partNo }).lean();
+    res.json(p || {});
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
+});
 
-  if (!pool) return res.status(501).json({ error: 'Parts API requires Postgres pool (not configured)' });
-  await pool.query(
-    `INSERT INTO parts_master (part_no, part_desc)
-     VALUES ($1, $2)
-     ON CONFLICT (part_no) DO NOTHING`,
-    [part_no, part_desc]
-  );
-
-  res.json({ success: true });
+app.post("/api/parts", async (req, res) => {
+  try {
+    const { part_no, part_desc } = req.body;
+    if (!part_no || !part_desc) return res.status(400).json({ error: "Missing data" });
+    await Part.updateOne({ part_no }, { part_no, part_desc }, { upsert: true });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 
